@@ -13,19 +13,23 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
       - uses: gradle/actions/setup-gradle@v3
-      - name: Create temporary debug keystore if missing
+        with:
+          gradle-version: 8.11.1
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+      - name: Create temp debug keystore
         run: |
-          if [ ! -f ~/.android/debug.keystore ]; then
-            mkdir -p ~/.android
-            keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -dname "CN=Android Debug,O=Android,C=US" -keyalg RSA -keysize 2048 -validity 10000
-          fi
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -dname "CN=Android Debug,O=Android,C=US" -keyalg RSA -keysize 2048 -validity 10000; fi
       - name: Build Debug APK
         run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
       - uses: softprops/action-gh-release@v2
+        if: success()
         with:
           tag_name: debug_apk_build_${{ github.run_number }}_${{ github.sha }}
           name: Debug APK Build ${{ github.run_number }}
